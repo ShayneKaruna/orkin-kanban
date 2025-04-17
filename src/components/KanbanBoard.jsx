@@ -219,6 +219,21 @@ export default function KanbanBoard() {
     const member = data.teamMembers.find(m => m.name === name);
     return member ? member.color : 'from-gray-500 to-gray-700';
   };
+
+  // Get a random color for new team members
+  const getRandomTeamMemberColor = () => {
+    const colors = [
+      'bg-blue-500',
+      'bg-green-500',
+      'bg-purple-500',
+      'bg-pink-500',
+      'bg-indigo-500',
+      'bg-teal-500',
+      'bg-orange-500',
+      'bg-red-500'
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
   
   // Filter tasks based on selected category, search term, AND selected board member
   const filteredTasks = data.tasks
@@ -430,28 +445,50 @@ export default function KanbanBoard() {
   };
   
   // Handle adding a new team member
-  const handleAddTeamMember = async () => {
+  const handleAddTeamMember = async (e) => {
+    e.preventDefault();
+    if (!newTeamMember.trim()) return;
+
+    const tempId = `temp-${Date.now()}`;
+    const newMember = {
+      id: tempId,
+      name: newTeamMember.trim(),
+      role: 'Developer',
+      status: 'Available',
+      pending: true,
+      color: getRandomTeamMemberColor()
+    };
+
+    // Update local state immediately for optimistic update
+    setData(prevData => ({
+      ...prevData,
+      teamMembers: [...prevData.teamMembers, newMember]
+    }));
+    setNewTeamMember('');
+
+    if (isOffline) {
+      setPendingChanges(prev => ({
+        ...prev,
+        teamMembers: [...(prev.teamMembers || []), newMember]
+      }));
+      return;
+    }
+
     try {
-      if (!newTeamMember.trim()) return;
-      
-      const newMemberData = {
-        name: newTeamMember,
-        color: `bg-${['blue', 'green', 'purple', 'pink', 'yellow', 'red', 'indigo'][Math.floor(Math.random() * 7)]}-500`,
-        role: 'team_member'
-      };
-      
-      const createdMember = await api.createTeamMember(newMemberData);
-      
+      const savedMember = await api.createTeamMember(newMember);
       setData(prevData => ({
         ...prevData,
-        teamMembers: [...prevData.teamMembers, createdMember]
+        teamMembers: prevData.teamMembers.map(member => 
+          member.id === tempId ? { ...savedMember, pending: false } : member
+        )
       }));
-      
-      setNewTeamMember('');
-      setShowAddTeamMember(false);
-    } catch (err) {
-      console.error('Error creating team member:', err);
-      setError('Failed to create team member. Please try again.');
+    } catch (error) {
+      console.error('Error adding team member:', error);
+      setError('Failed to add team member. Will retry when online.');
+      setPendingChanges(prev => ({
+        ...prev,
+        teamMembers: [...(prev.teamMembers || []), newMember]
+      }));
     }
   };
 
@@ -1246,13 +1283,29 @@ export default function KanbanBoard() {
             )}
             {data.teamMembers.map(member => (
               <li key={member.id}>
-                <button 
-                  className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === member.id ? (darkMode ? 'bg-indigo-900 text-indigo-200' : 'bg-indigo-100 text-indigo-800') : (darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100')}`}
-                  onClick={() => setActiveTab(member.id)}
-                >
-                   <div className={`w-4 h-4 rounded-full bg-gradient-to-r ${member.color} min-w-4 flex-shrink-0`}></div>
-                  {sidebarOpen && <span className="ml-3">{member.name}</span>}
-                </button>
+                <div className="flex items-center justify-between">
+                  <button 
+                    className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === member.id ? (darkMode ? 'bg-indigo-900 text-indigo-200' : 'bg-indigo-100 text-indigo-800') : (darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100')}`}
+                    onClick={() => setActiveTab(member.id)}
+                  >
+                    <div className={`w-4 h-4 rounded-full bg-gradient-to-r ${member.color} min-w-4 flex-shrink-0`}></div>
+                    {sidebarOpen && <span className="ml-3">{member.name}</span>}
+                  </button>
+                  {sidebarOpen && (
+                    <button
+                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Are you sure you want to remove ${member.name}? This action cannot be undone.`)) {
+                          handleDeleteTeamMember(member.id);
+                        }
+                      }}
+                      title="Remove team member"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
              <li>
@@ -1446,6 +1499,9 @@ export default function KanbanBoard() {
                                 <div className="font-medium">{task.title}</div>
                                 {task.description && <div className="text-sm text-gray-400 mt-1">{task.description}</div>}
                                 <div className="text-xs text-gray-500 mt-2">Assigned to: {task.assignee || 'Unassigned'}</div>
+                                {task.for && (
+                                  <div className="text-xs text-gray-500 mt-1">For: {task.for}</div>
+                                )}
                                 {task.dueDate && (
                                   <div className="text-xs text-gray-500 mt-1">
                                     Due: {task.dueDate}
