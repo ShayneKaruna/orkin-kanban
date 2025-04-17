@@ -36,7 +36,7 @@ export default function KanbanBoard() {
       { id: 'e4', name: 'Michelle Gazzellone', tasks: [], status: 'N/A' },
       { id: 'e5', name: 'Jamie Belitz', tasks: [], status: 'N/A' },
       { id: 'e6', name: 'Rina Altbaum', tasks: [], status: 'N/A' },
-      { id: 'e7', name: 'Kristina Boulokos', tasks: [], status: 'N/A' }
+      { id: 'e7', name: 'Sean Rollo', tasks: [], status: 'N/A' }
     ],
     regionManagers: [
       { id: 'rm1', name: 'Ryan Wood', tasks: [], status: 'N/A' },
@@ -158,6 +158,8 @@ export default function KanbanBoard() {
   const [darkMode, setDarkMode] = useState(true); // Default to dark mode
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+ 
   
   // For burning issues
   const [newBurningIssue, setNewBurningIssue] = useState('');
@@ -508,18 +510,49 @@ export default function KanbanBoard() {
       if (!newBurningIssue.trim()) return;
       
       const newIssueData = {
+        id: Date.now().toString(), // Temporary ID for local state
         description: newBurningIssue.trim(),
-        status: 'active'
+        status: 'active',
+        createdAt: new Date().toISOString()
       };
       
-      const createdIssue = await api.createBurningIssue(newIssueData);
-      
+      // Update local state immediately
       setData(prevData => ({
         ...prevData,
-        burningIssues: [...prevData.burningIssues, createdIssue]
+        burningIssues: [...prevData.burningIssues, newIssueData]
       }));
       
+      // Clear the input
       setNewBurningIssue('');
+      
+      // Try to sync with backend if online
+      if (!isOffline) {
+        try {
+          const createdIssue = await api.createBurningIssue(newIssueData);
+          // Update with server response if successful
+          setData(prevData => ({
+            ...prevData,
+            burningIssues: prevData.burningIssues.map(issue => 
+              issue.id === newIssueData.id ? createdIssue : issue
+            )
+          }));
+        } catch (err) {
+          console.error('Error syncing burning issue:', err);
+          // Add to pending changes if sync fails
+          setPendingChanges(prev => [...prev, {
+            type: 'create',
+            data: newIssueData,
+            endpoint: 'burningIssues'
+          }]);
+        }
+      } else {
+        // Add to pending changes if offline
+        setPendingChanges(prev => [...prev, {
+          type: 'create',
+          data: newIssueData,
+          endpoint: 'burningIssues'
+        }]);
+      }
     } catch (err) {
       console.error('Error creating burning issue:', err);
       setError('Failed to create burning issue. Please try again.');
@@ -671,19 +704,49 @@ export default function KanbanBoard() {
       if (!newSupportItem.trim()) return;
       
       const newItemData = {
+        id: Date.now().toString(), // Temporary ID for local state
         description: newSupportItem.trim(),
-        status: 'pending',
-        priority: 'medium'
+        status: 'active',
+        createdAt: new Date().toISOString()
       };
       
-      const createdItem = await api.createSupportItem(newItemData);
-      
+      // Update local state immediately
       setData(prevData => ({
         ...prevData,
-        supportItems: [...prevData.supportItems, createdItem]
+        supportItems: [...prevData.supportItems, newItemData]
       }));
       
+      // Clear the input
       setNewSupportItem('');
+      
+      // Try to sync with backend if online
+      if (!isOffline) {
+        try {
+          const createdItem = await api.createSupportItem(newItemData);
+          // Update with server response if successful
+          setData(prevData => ({
+            ...prevData,
+            supportItems: prevData.supportItems.map(item => 
+              item.id === newItemData.id ? createdItem : item
+            )
+          }));
+        } catch (err) {
+          console.error('Error syncing support item:', err);
+          // Add to pending changes if sync fails
+          setPendingChanges(prev => [...prev, {
+            type: 'create',
+            data: newItemData,
+            endpoint: 'supportItems'
+          }]);
+        }
+      } else {
+        // Add to pending changes if offline
+        setPendingChanges(prev => [...prev, {
+          type: 'create',
+          data: newItemData,
+          endpoint: 'supportItems'
+        }]);
+      }
     } catch (err) {
       console.error('Error creating support item:', err);
       setError('Failed to create support item. Please try again.');
@@ -971,13 +1034,57 @@ export default function KanbanBoard() {
 
   const [newBranchManagerIssue, setNewBranchManagerIssue] = useState('');
 
-  const handleAddBranchManagerIssue = () => {
-    if (newBranchManagerIssue.trim()) {
-      setData({
-        ...data,
-        branchManagerIssues: [...data.branchManagerIssues, newBranchManagerIssue.trim()]
-      });
+  const handleAddBranchManagerIssue = async () => {
+    try {
+      if (!newBranchManagerIssue.trim()) return;
+      
+      const newIssueData = {
+        id: Date.now().toString(), // Temporary ID for local state
+        description: newBranchManagerIssue.trim(),
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+      
+      // Update local state immediately
+      setData(prevData => ({
+        ...prevData,
+        branchManagerIssues: [...prevData.branchManagerIssues, newIssueData]
+      }));
+      
+      // Clear the input
       setNewBranchManagerIssue('');
+      
+      // Try to sync with backend if online
+      if (!isOffline) {
+        try {
+          const createdIssue = await api.createBranchManagerIssue(newIssueData);
+          // Update with server response if successful
+          setData(prevData => ({
+            ...prevData,
+            branchManagerIssues: prevData.branchManagerIssues.map(issue => 
+              issue.id === newIssueData.id ? createdIssue : issue
+            )
+          }));
+        } catch (err) {
+          console.error('Error syncing branch manager issue:', err);
+          // Add to pending changes if sync fails
+          setPendingChanges(prev => [...prev, {
+            type: 'create',
+            data: newIssueData,
+            endpoint: 'branchManagerIssues'
+          }]);
+        }
+      } else {
+        // Add to pending changes if offline
+        setPendingChanges(prev => [...prev, {
+          type: 'create',
+          data: newIssueData,
+          endpoint: 'branchManagerIssues'
+        }]);
+      }
+    } catch (err) {
+      console.error('Error creating branch manager issue:', err);
+      setError('Failed to create branch manager issue. Please try again.');
     }
   };
 
@@ -1999,7 +2106,6 @@ export default function KanbanBoard() {
                             className={`w-full appearance-none px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                             value={newTask.for}
                             onChange={(e) => setNewTask({...newTask, for: e.target.value})}
-                            disabled={!['executives', 'regionmanagers'].includes(newTask.category)}
                           >
                             <option value="">Select Person</option>
                             {newTask.category === 'executives' && data.executives.map(exec => (
@@ -2008,6 +2114,34 @@ export default function KanbanBoard() {
                             {newTask.category === 'regionmanagers' && data.regionManagers.map(manager => (
                               <option key={manager.id} value={manager.name}>{manager.name}</option>
                             ))}
+                            {newTask.category === 'burningissues' && (
+                              <>
+                                <optgroup label="Executives">
+                                  {data.executives.map(exec => (
+                                    <option key={exec.id} value={exec.name}>{exec.name}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Region Managers">
+                                  {data.regionManagers.map(manager => (
+                                    <option key={manager.id} value={manager.name}>{manager.name}</option>
+                                  ))}
+                                </optgroup>
+                              </>
+                            )}
+                            {newTask.category === 'projects' && (
+                              <>
+                                <optgroup label="Executives">
+                                  {data.executives.map(exec => (
+                                    <option key={exec.id} value={exec.name}>{exec.name}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Region Managers">
+                                  {data.regionManagers.map(manager => (
+                                    <option key={manager.id} value={manager.name}>{manager.name}</option>
+                                  ))}
+                                </optgroup>
+                              </>
+                            )}
                           </select>
                         )}
                         {!['branchmanagers'].includes(newTask.category) && (
