@@ -1142,33 +1142,36 @@ export default function KanbanBoard() {
   return (
     <div className={`flex h-screen ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-16'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r transition-all duration-300 flex flex-col`}>
-        <div className="p-4 flex items-center justify-between">
+      <div className={`${sidebarOpen ? 'w-64' : 'w-16'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r transition-all duration-300 flex flex-col fixed h-full z-50`}>
+        <div className="p-4 flex items-center">
           {/* Logo and Title Container */}
-          <div className="flex items-center">
-            <div className={`${sidebarOpen ? 'w-24' : 'w-12'} transition-all duration-300`}>
-              <img 
-                src="https://www.greenhousecanada.com/wp-content/uploads/gravity_forms/34-8036c8d964888c2a7159013177157508/2024/10/Orkin-Canada-logo.png" 
-                alt="Orkin Canada Logo" 
-                className="w-full h-auto"
-                style={{ 
-                  objectFit: 'contain',
-                  maxHeight: sidebarOpen ? '48px' : '32px'
-                }}
-                onError={(e) => {
-                  console.error('Error loading logo in sidebar');
-                  e.target.style.display = 'none';
-                }}
-              />
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center">
+              <div className={`${sidebarOpen ? 'w-24' : 'w-12'} transition-all duration-300`}>
+                <img 
+                  src="/orkin-logo.png.png" 
+                  alt="Orkin Canada Logo" 
+                  className="w-full h-auto"
+                  style={{ 
+                    objectFit: 'contain',
+                    maxHeight: sidebarOpen ? '48px' : '32px'
+                  }}
+                  onError={(e) => {
+                    console.error('Error loading logo in sidebar');
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
+              <h1 className={`font-bold ml-2 ${sidebarOpen ? 'block' : 'hidden'}`}>IT Tasks</h1>
             </div>
-            <h1 className={`font-bold ml-2 ${sidebarOpen ? 'block' : 'hidden'}`}>IT Tasks</h1>
+            <button 
+              className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            >
+              <Menu size={20} className={`transform transition-transform duration-300 ${sidebarOpen ? 'rotate-180' : ''}`} />
+            </button>
           </div>
-          <button 
-            className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <Menu size={20} />
-          </button>
         </div>
         
         <nav className="flex-1 p-2">
@@ -1293,17 +1296,13 @@ export default function KanbanBoard() {
       </div>
       
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
         {/* Header */}
-        <header className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b p-4`}>
+        <header className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b p-4 relative z-10`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h1 className="text-xl font-bold">
-              {activeTab === 'board' && 'IT Weekly Overview'}
-              {activeTab === 'overview' && 'Weekly Overview'}
-              {activeTab === 'executives' && 'Executives'}
-              {activeTab === 'managers' && 'Region Managers'}
-            </h1>
-            
+            <div className="flex-1 flex justify-center">
+              <h1 className="text-xl font-bold">IT Weekly Overview</h1>
+            </div>
             <div className="flex items-center gap-2">
               {activeTab === 'board' && (
                 <>
