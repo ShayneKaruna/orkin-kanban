@@ -710,13 +710,13 @@ export default function KanbanBoard() {
         createdAt: new Date().toISOString()
       };
       
-      // Update local state immediately
+      // Update local state immediately for optimistic update
       setData(prevData => ({
         ...prevData,
         supportItems: [...prevData.supportItems, newItemData]
       }));
       
-      // Clear the input
+      // Clear the input immediately
       setNewSupportItem('');
       
       // Try to sync with backend if online
@@ -731,7 +731,7 @@ export default function KanbanBoard() {
             )
           }));
         } catch (err) {
-          console.error('Error syncing support item:', err);
+          console.warn('Error syncing support item:', err);
           // Add to pending changes if sync fails
           setPendingChanges(prev => [...prev, {
             type: 'create',
@@ -809,7 +809,7 @@ export default function KanbanBoard() {
           console.error('Error loading logo image');
           resolve();
         };
-        img.src = '/orkin-logo.png';
+        img.src = 'https://www.greenhousecanada.com/wp-content/uploads/gravity_forms/34-8036c8d964888c2a7159013177157508/2024/10/Orkin-Canada-logo.png';
       });
     };
 
@@ -1148,7 +1148,7 @@ export default function KanbanBoard() {
           <div className="flex items-center">
             <div className={`${sidebarOpen ? 'w-24' : 'w-12'} transition-all duration-300`}>
               <img 
-                src="/orkin-logo.png" 
+                src="https://www.greenhousecanada.com/wp-content/uploads/gravity_forms/34-8036c8d964888c2a7159013177157508/2024/10/Orkin-Canada-logo.png" 
                 alt="Orkin Canada Logo" 
                 className="w-full h-auto"
                 style={{ 
@@ -1161,7 +1161,7 @@ export default function KanbanBoard() {
                 }}
               />
             </div>
-            <h1 className={`font-bold ml-2 ${sidebarOpen ? 'block' : 'hidden'}`}>IT Kanban</h1>
+            <h1 className={`font-bold ml-2 ${sidebarOpen ? 'block' : 'hidden'}`}>IT Tasks</h1>
           </div>
           <button 
             className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
@@ -1298,7 +1298,7 @@ export default function KanbanBoard() {
         <header className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b p-4`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h1 className="text-xl font-bold">
-              {activeTab === 'board' && 'Kanban Board'}
+              {activeTab === 'board' && 'IT Weekly Overview'}
               {activeTab === 'overview' && 'Weekly Overview'}
               {activeTab === 'executives' && 'Executives'}
               {activeTab === 'managers' && 'Region Managers'}
