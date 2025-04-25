@@ -860,7 +860,7 @@ export default function KanbanBoard() {
     // Add Orkin Logo
     const logoWidth = 40;
     const logoHeight = 20;
-    const logoX = margin;
+    const logoX = (pageWidth - logoWidth) / 2; // Center the logo horizontally
     const logoY = margin;
     
     // Load and add logo image
@@ -880,7 +880,7 @@ export default function KanbanBoard() {
           console.error('Error loading logo image');
           resolve();
         };
-        img.src = 'https://www.greenhousecanada.com/wp-content/uploads/gravity_forms/34-8036c8d964888c2a7159013177157508/2024/10/Orkin-Canada-logo.png';
+        img.src = '/orkin-logo.png.png';
       });
     };
 
@@ -920,6 +920,15 @@ export default function KanbanBoard() {
         const titleLines = doc.splitTextToSize(`• ${task.title}`, maxLineWidth - 10);
         doc.text(titleLines, margin + 3, yPos);
         yPos += titleLines.length * (lineSpacing * 0.7);
+
+        if (task.description) {
+          checkAndAddPage(lineSpacing);
+          doc.setFontSize(8);
+          doc.setTextColor(100);
+          const descLines = doc.splitTextToSize(`  Description: ${task.description}`, maxLineWidth - 10);
+          doc.text(descLines, margin + 3, yPos);
+          yPos += descLines.length * (lineSpacing * 0.7);
+        }
 
         if (task.assignee) {
           checkAndAddPage(lineSpacing);
@@ -1091,6 +1100,76 @@ export default function KanbanBoard() {
         doc.text('  No tasks assigned to branch managers', margin + 3, yPos);
       } else {
         branchManagerTasks.forEach(addTaskItem);
+      }
+      yPos += sectionSpacing;
+
+      // Add Summary Section
+      addSectionTitle('Complete Task Summary');
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text('This section includes all tasks, burning issues, and support items:', margin, yPos);
+      yPos += lineSpacing * 1.5;
+
+      // All Tasks Summary
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('All Tasks', margin, yPos);
+      doc.setFont(undefined, 'normal');
+      yPos += lineSpacing * 1.2;
+
+      if (data.tasks.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text('  No tasks in the system', margin + 3, yPos);
+        yPos += lineSpacing;
+      } else {
+        data.tasks.forEach(addTaskItem);
+      }
+      yPos += sectionSpacing;
+
+      // All Burning Issues Summary
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('All Burning Issues', margin, yPos);
+      doc.setFont(undefined, 'normal');
+      yPos += lineSpacing * 1.2;
+
+      if (data.burningIssues.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text('  No burning issues', margin + 3, yPos);
+        yPos += lineSpacing;
+      } else {
+        data.burningIssues.forEach(issue => {
+          checkAndAddPage(lineSpacing);
+          doc.setFontSize(9);
+          doc.setTextColor(0, 0, 0);
+          doc.text(`  • ${issue.description}`, margin + 3, yPos);
+          yPos += lineSpacing;
+        });
+      }
+      yPos += sectionSpacing;
+
+      // All Support Items Summary
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('All Support Items', margin, yPos);
+      doc.setFont(undefined, 'normal');
+      yPos += lineSpacing * 1.2;
+
+      if (data.supportItems.length === 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text('  No support items', margin + 3, yPos);
+        yPos += lineSpacing;
+      } else {
+        data.supportItems.forEach(item => {
+          checkAndAddPage(lineSpacing);
+          doc.setFontSize(9);
+          doc.setTextColor(0, 0, 0);
+          doc.text(`  • ${item.description}`, margin + 3, yPos);
+          yPos += lineSpacing;
+        });
       }
 
       // Save the PDF
