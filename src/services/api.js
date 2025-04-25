@@ -156,4 +156,9 @@ export const updateSupportItem = async (id, item) => {
 export const deleteSupportItem = async (id) => {
   const response = await api.delete(`/support-items/${id}`);
   return response.data;
+};
+
+export const deleteBranchManagerIssue = async (id) => {
+  const response = await api.delete(`/branch-manager-issues/${id}`);
+  return response.data;
 }; 

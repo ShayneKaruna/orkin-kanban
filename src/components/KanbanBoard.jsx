@@ -400,46 +400,38 @@ export default function KanbanBoard() {
     }
   };
 
+  // Handle deleting a task
   const handleDeleteTask = async (taskId) => {
     try {
-      if (!taskId) {
-        console.error('Cannot delete task: Task ID is undefined');
-        setError('Cannot delete task: Invalid task ID');
-        return;
-      }
-      
-      const taskToDelete = data.tasks.find(task => task.id === taskId);
-      if (!taskToDelete) {
-        console.error('Task not found:', taskId);
-        return;
-      }
-      
-      // First update the UI and localStorage
-      setData(prevData => {
-        const newData = {
-          ...prevData,
-          tasks: prevData.tasks.filter(task => task.id !== taskId)
-        };
-        localStorage.setItem('kanbanData', JSON.stringify(newData));
-        return newData;
-      });
-      
-      // Add to pending changes if offline
-      if (isOffline) {
-        setPendingChanges(prev => [...prev, { type: 'delete', data: taskToDelete }]);
-        setError('Task deleted in offline mode. Will sync when connection is restored.');
-      } else {
-        // Try to delete from the backend
+      // Update local state first for immediate feedback
+      setData(prevData => ({
+        ...prevData,
+        tasks: prevData.tasks.filter(task => task.id !== taskId)
+      }));
+
+      // Try to sync with backend if online
+      if (!isOffline) {
         try {
           await api.deleteTask(taskId);
-        } catch (apiError) {
-          console.error('Error deleting task from backend:', apiError);
-          setPendingChanges(prev => [...prev, { type: 'delete', data: taskToDelete }]);
-          setError('Failed to delete task from server. Changes are saved locally and will sync when connection is restored.');
+        } catch (err) {
+          console.error('Error syncing task deletion:', err);
+          // Add to pending changes if sync fails
+          setPendingChanges(prev => [...prev, {
+            type: 'delete',
+            id: taskId,
+            endpoint: 'tasks'
+          }]);
         }
+      } else {
+        // Add to pending changes if offline
+        setPendingChanges(prev => [...prev, {
+          type: 'delete',
+          id: taskId,
+          endpoint: 'tasks'
+        }]);
       }
-    } catch (error) {
-      console.error('Error in handleDeleteTask:', error);
+    } catch (err) {
+      console.error('Error deleting task:', err);
       setError('Failed to delete task. Please try again.');
     }
   };
@@ -599,12 +591,33 @@ export default function KanbanBoard() {
   // Handle deleting a burning issue
   const handleDeleteBurningIssue = async (id) => {
     try {
-      await api.deleteBurningIssue(id);
-      
+      // Update local state first for immediate feedback
       setData(prevData => ({
         ...prevData,
         burningIssues: prevData.burningIssues.filter(issue => issue.id !== id)
       }));
+
+      // Try to sync with backend if online
+      if (!isOffline) {
+        try {
+          await api.deleteBurningIssue(id);
+        } catch (err) {
+          console.error('Error syncing burning issue deletion:', err);
+          // Add to pending changes if sync fails
+          setPendingChanges(prev => [...prev, {
+            type: 'delete',
+            id: id,
+            endpoint: 'burningIssues'
+          }]);
+        }
+      } else {
+        // Add to pending changes if offline
+        setPendingChanges(prev => [...prev, {
+          type: 'delete',
+          id: id,
+          endpoint: 'burningIssues'
+        }]);
+      }
     } catch (err) {
       console.error('Error deleting burning issue:', err);
       setError('Failed to delete burning issue. Please try again.');
@@ -793,12 +806,33 @@ export default function KanbanBoard() {
   // Handle deleting a support item
   const handleDeleteSupportItem = async (id) => {
     try {
-      await api.deleteSupportItem(id);
-      
+      // Update local state first for immediate feedback
       setData(prevData => ({
         ...prevData,
         supportItems: prevData.supportItems.filter(item => item.id !== id)
       }));
+
+      // Try to sync with backend if online
+      if (!isOffline) {
+        try {
+          await api.deleteSupportItem(id);
+        } catch (err) {
+          console.error('Error syncing support item deletion:', err);
+          // Add to pending changes if sync fails
+          setPendingChanges(prev => [...prev, {
+            type: 'delete',
+            id: id,
+            endpoint: 'supportItems'
+          }]);
+        }
+      } else {
+        // Add to pending changes if offline
+        setPendingChanges(prev => [...prev, {
+          type: 'delete',
+          id: id,
+          endpoint: 'supportItems'
+        }]);
+      }
     } catch (err) {
       console.error('Error deleting support item:', err);
       setError('Failed to delete support item. Please try again.');
@@ -1125,13 +1159,40 @@ export default function KanbanBoard() {
     }
   };
 
-  const handleDeleteBranchManagerIssue = (index) => {
-    const updatedIssues = [...data.branchManagerIssues];
-    updatedIssues.splice(index, 1);
-    setData({
-      ...data,
-      branchManagerIssues: updatedIssues
-    });
+  // Handle deleting a branch manager issue
+  const handleDeleteBranchManagerIssue = async (id) => {
+    try {
+      // Update local state first for immediate feedback
+      setData(prevData => ({
+        ...prevData,
+        branchManagerIssues: prevData.branchManagerIssues.filter(issue => issue.id !== id)
+      }));
+
+      // Try to sync with backend if online
+      if (!isOffline) {
+        try {
+          await api.deleteBranchManagerIssue(id);
+        } catch (err) {
+          console.error('Error syncing branch manager issue deletion:', err);
+          // Add to pending changes if sync fails
+          setPendingChanges(prev => [...prev, {
+            type: 'delete',
+            id: id,
+            endpoint: 'branchManagerIssues'
+          }]);
+        }
+      } else {
+        // Add to pending changes if offline
+        setPendingChanges(prev => [...prev, {
+          type: 'delete',
+          id: id,
+          endpoint: 'branchManagerIssues'
+        }]);
+      }
+    } catch (err) {
+      console.error('Error deleting branch manager issue:', err);
+      setError('Failed to delete branch manager issue. Please try again.');
+    }
   };
 
   const handleCategoryChange = (e) => {
