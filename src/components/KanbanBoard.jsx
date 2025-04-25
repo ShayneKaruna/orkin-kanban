@@ -880,7 +880,7 @@ export default function KanbanBoard() {
           console.error('Error loading logo image');
           resolve();
         };
-        img.src = '/orkin-logo.png.png';
+        img.src = '/orkin-logo.png';
       });
     };
 
