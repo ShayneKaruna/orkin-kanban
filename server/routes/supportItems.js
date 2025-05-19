@@ -17,6 +17,7 @@ router.post('/', async (req, res) => {
   const item = new SupportItem(req.body);
   try {
     const newItem = await item.save();
+    req.app.get('io').emit('support-items-updated');
     res.status(201).json(newItem);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -36,6 +37,7 @@ router.patch('/:id', async (req, res) => {
     });
 
     const updatedItem = await item.save();
+    req.app.get('io').emit('support-items-updated');
     res.json(updatedItem);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -50,6 +52,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Item not found' });
     }
     await item.deleteOne();
+    req.app.get('io').emit('support-items-updated');
     res.json({ message: 'Item deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });

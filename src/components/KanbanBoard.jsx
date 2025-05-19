@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import * as api from '../services/api';
+import { io } from 'socket.io-client';
 
 export default function KanbanBoard() {
   // Initial data based on your weekly updates
@@ -56,11 +57,31 @@ export default function KanbanBoard() {
     branchManagerIssues: []
   };
 
-  const [data, setData] = useState(() => {
-    // Load initial data from localStorage if it exists
-    const savedData = localStorage.getItem('kanbanData');
-    return savedData ? JSON.parse(savedData) : initialData;
-  });
+  const fetchAllData = async () => {
+    const [tasks, teamMembers, burningIssues, supportItems] = await Promise.all([
+      api.getTasks(),
+      api.getTeamMembers(),
+      api.getBurningIssues(),
+      api.getSupportItems()
+    ]);
+    console.log('Fetched teamMembers:', teamMembers);
+    setData(prev => ({
+      ...prev,
+      tasks: tasks
+        .filter(task => task && (task._id || task.id) && task.title)
+        .map(task => ({ ...task, id: task._id || task.id })),
+      teamMembers: teamMembers
+        .filter(member => member && (member._id || member.id) && member.name)
+        .map(member => ({ ...member, id: member._id || member.id })),
+      burningIssues: burningIssues
+        .filter(issue => issue && (issue._id || issue.id))
+        .map(issue => ({ ...issue, id: issue._id || issue.id })),
+      supportItems: supportItems
+        .filter(item => item && (item._id || item.id))
+        .map(item => ({ ...item, id: item._id || item.id })),
+    }));
+  };
+  const [data, setData] = useState(initialData);
 
   // Add new state for offline mode and sync status
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -70,15 +91,191 @@ export default function KanbanBoard() {
   });
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Save data to localStorage whenever it changes
+  // Fetch all data from backend on mount
   useEffect(() => {
-    localStorage.setItem('kanbanData', JSON.stringify(data));
-  }, [data]);
+    let isMounted = true;
+    let pollInterval;
+    let retryCount = 0;
+    const maxRetries = 3;
 
-  // Save pending changes to localStorage
+    const fetchData = async () => {
+      try {
+        if (!isMounted) return;
+        
+        const [tasks, teamMembers, burningIssues, supportItems] = await Promise.all([
+          api.getTasks().catch(err => {
+            console.error('Error fetching tasks:', err);
+            return [];
+          }),
+          api.getTeamMembers().catch(err => {
+            console.error('Error fetching team members:', err);
+            return [];
+          }),
+          api.getBurningIssues().catch(err => {
+            console.error('Error fetching burning issues:', err);
+            return [];
+          }),
+          api.getSupportItems().catch(err => {
+            console.error('Error fetching support items:', err);
+            return [];
+          })
+        ]);
+
+        if (!isMounted) return;
+
+        // Validate and process team members
+        const validTeamMembers = teamMembers
+          .filter(member => member && (member._id || member.id) && member.name)
+          .map(member => ({ 
+            ...member, 
+            id: member._id || member.id,
+            color: member.color || getRandomTeamMemberColor()
+          }));
+
+        // If no team members were fetched, use initial data
+        const finalTeamMembers = validTeamMembers.length > 0 ? validTeamMembers : initialData.teamMembers;
+
+        setData(prev => ({
+          ...prev,
+          tasks: tasks
+            .filter(task => task && (task._id || task.id) && task.title)
+            .map(task => ({ ...task, id: task._id || task.id })),
+          teamMembers: finalTeamMembers,
+          burningIssues: burningIssues
+            .filter(issue => issue && (issue._id || issue.id))
+            .map(issue => ({ ...issue, id: issue._id || issue.id })),
+          supportItems: supportItems
+            .filter(item => item && (item._id || item.id))
+            .map(item => ({ ...item, id: item._id || item.id })),
+        }));
+
+        retryCount = 0; // Reset retry count on successful fetch
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        if (isMounted) {
+          setError('Failed to fetch data. Please check your connection.');
+          retryCount++;
+          if (retryCount < maxRetries) {
+            // Retry after a delay
+            setTimeout(fetchData, 1000 * retryCount);
+          }
+        }
+      }
+    };
+
+    // Initial fetch
+    fetchData();
+
+    // Set up polling with exponential backoff
+    const startPolling = () => {
+      pollInterval = setInterval(fetchData, 5000);
+    };
+
+    startPolling();
+
+    return () => {
+      isMounted = false;
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, []);
+
+  // Socket.IO connection setup
   useEffect(() => {
-    localStorage.setItem('pendingChanges', JSON.stringify(pendingChanges));
-  }, [pendingChanges]);
+    let socket;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 1000;
+    let isComponentMounted = true;
+    let connectionTimeout;
+
+    const connectSocket = () => {
+      if (!isComponentMounted) return;
+
+      // Clear any existing connection timeout
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+      }
+
+      socket = io('http://localhost:5000', {
+        reconnection: true,
+        reconnectionAttempts: maxReconnectAttempts,
+        reconnectionDelay: reconnectDelay,
+        timeout: 10000,
+        transports: ['websocket', 'polling'],
+        forceNew: true,
+        autoConnect: true
+      });
+
+      // Set a connection timeout
+      connectionTimeout = setTimeout(() => {
+        if (socket && !socket.connected) {
+          console.log('Socket connection timeout, retrying...');
+          socket.disconnect();
+          socket.connect();
+        }
+      }, 5000);
+
+      socket.on('connect', () => {
+        if (!isComponentMounted) return;
+        console.log('Socket connected:', socket.id);
+        reconnectAttempts = 0;
+        if (connectionTimeout) {
+          clearTimeout(connectionTimeout);
+        }
+      });
+
+      socket.on('connect_error', (error) => {
+        if (!isComponentMounted) return;
+        console.error('Socket connection error:', error);
+        reconnectAttempts++;
+        if (reconnectAttempts >= maxReconnectAttempts) {
+          console.error('Max reconnection attempts reached');
+          setError('Unable to establish real-time connection. Some features may be limited.');
+        }
+      });
+
+      socket.on('disconnect', (reason) => {
+        if (!isComponentMounted) return;
+        console.log('Socket disconnected:', reason);
+        if (reason === 'io server disconnect') {
+          socket.connect();
+        }
+      });
+
+      socket.on('error', (error) => {
+        if (!isComponentMounted) return;
+        console.error('Socket error:', error);
+      });
+
+      // Batch updates to prevent multiple re-renders
+      const handleUpdate = () => {
+        if (!isComponentMounted) return;
+        fetchAllData();
+      };
+
+      socket.on('tasks-updated', handleUpdate);
+      socket.on('team-members-updated', handleUpdate);
+      socket.on('burning-issues-updated', handleUpdate);
+      socket.on('support-items-updated', handleUpdate);
+    };
+
+    connectSocket();
+
+    return () => {
+      isComponentMounted = false;
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+      }
+      if (socket) {
+        console.log('Cleaning up socket connection');
+        socket.removeAllListeners();
+        socket.disconnect();
+        socket.close();
+      }
+    };
+  }, []);
 
   // Handle online/offline status
   useEffect(() => {
@@ -183,37 +380,6 @@ export default function KanbanBoard() {
     resetNewTask();
   };
   
-  // Fetch data from API when component mounts
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [tasks, teamMembers, burningIssues, supportItems] = await Promise.all([
-          api.getTasks(),
-          api.getTeamMembers(),
-          api.getBurningIssues(),
-          api.getSupportItems()
-        ]);
-        
-        // Merge API data with initial data
-        setData(prevData => ({
-          ...prevData,
-          tasks: tasks || [],
-          teamMembers: teamMembers?.length ? teamMembers : prevData.teamMembers,
-          burningIssues: burningIssues || [],
-          supportItems: supportItems || []
-        }));
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load data. Please try again later.');
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, []);
-  
   // Get team member color
   const getTeamMemberColor = (name) => {
     const member = data.teamMembers.find(m => m.name === name);
@@ -304,57 +470,17 @@ export default function KanbanBoard() {
         setError('Task title is required');
         return;
       }
-
-      const taskId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const newTaskData = {
+      const createdTask = await api.createTask({
         ...newTask,
-        id: taskId,
         createdAt: new Date().toISOString(),
-        category: newTask.category || 'projects',
-        status: newTask.status || 'todo',
-        description: newTask.description || '',
-        assignee: newTask.assignee || '',
-        for: newTask.for || '',
-        dueDate: newTask.dueDate || '',
-        priority: newTask.priority || 'medium'
-      };
-      
-      // Update local state and localStorage
-      setData(prevData => {
-        const newData = {
-          ...prevData,
-          tasks: [...prevData.tasks, newTaskData]
-        };
-        localStorage.setItem('kanbanData', JSON.stringify(newData));
-        return newData;
       });
-      
-      // Add to pending changes if offline
-      if (isOffline) {
-        setPendingChanges(prev => [...prev, { type: 'create', data: newTaskData }]);
-        setError('Task created in offline mode. Will sync when connection is restored.');
-      } else {
-        // Try to save to the backend
-        try {
-          const createdTask = await api.createTask(newTaskData);
-          setData(prevData => {
-            const updatedData = {
-              ...prevData,
-              tasks: prevData.tasks.map(t => 
-                t.id === taskId ? { ...createdTask, id: taskId } : t
-              )
-            };
-            localStorage.setItem('kanbanData', JSON.stringify(updatedData));
-            return updatedData;
-          });
-        } catch (apiError) {
-          console.error('Error saving task to server:', apiError);
-          setPendingChanges(prev => [...prev, { type: 'create', data: newTaskData }]);
-          setError('Task created but failed to save to server. Will retry when connection is restored.');
-        }
-      }
-      
-      // Reset form and close modal
+      setData(prevData => ({
+        ...prevData,
+        tasks: [
+          ...prevData.tasks,
+          { ...createdTask, id: createdTask._id || createdTask.id }
+        ]
+      }));
       resetNewTask();
       setShowAddTask(false);
       setError(null);
@@ -374,7 +500,6 @@ export default function KanbanBoard() {
             task.id === updatedTask.id ? updatedTask : task
           )
         };
-        localStorage.setItem('kanbanData', JSON.stringify(newData));
         return newData;
       });
       
@@ -661,7 +786,7 @@ export default function KanbanBoard() {
 
   // Render a task card
   const renderTaskCard = (task) => {
-    if (!task || !task.id) {
+    if (!task || !task.id || !task.title) {
       console.error('Invalid task object:', task);
       return null;
     }
@@ -1326,7 +1451,7 @@ export default function KanbanBoard() {
             <div className="flex items-center">
               <div className={`${sidebarOpen ? 'w-24' : 'w-12'} transition-all duration-300`}>
                 <img 
-                  src="/orkin-logo.png.png" 
+                  src="/orkin-logo.png" 
                   alt="Orkin Canada Logo" 
                   className="w-full h-auto"
                   style={{ 

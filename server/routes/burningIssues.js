@@ -17,6 +17,7 @@ router.post('/', async (req, res) => {
   const issue = new BurningIssue(req.body);
   try {
     const newIssue = await issue.save();
+    req.app.get('io').emit('burning-issues-updated');
     res.status(201).json(newIssue);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -36,6 +37,7 @@ router.patch('/:id', async (req, res) => {
     });
 
     const updatedIssue = await issue.save();
+    req.app.get('io').emit('burning-issues-updated');
     res.json(updatedIssue);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -50,6 +52,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Issue not found' });
     }
     await issue.deleteOne();
+    req.app.get('io').emit('burning-issues-updated');
     res.json({ message: 'Issue deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });

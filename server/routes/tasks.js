@@ -17,6 +17,7 @@ router.post('/', async (req, res) => {
   const task = new Task(req.body);
   try {
     const newTask = await task.save();
+    req.app.get('io').emit('tasks-updated');
     res.status(201).json(newTask);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -36,6 +37,7 @@ router.patch('/:id', async (req, res) => {
     });
 
     const updatedTask = await task.save();
+    req.app.get('io').emit('tasks-updated');
     res.json(updatedTask);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -50,6 +52,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
     await task.deleteOne();
+    req.app.get('io').emit('tasks-updated');
     res.json({ message: 'Task deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
