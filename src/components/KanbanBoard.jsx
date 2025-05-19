@@ -13,6 +13,7 @@ export default function KanbanBoard() {
   // Initial data based on your weekly updates
   const initialData = {
     columns: [
+      { id: 'burningissues', title: 'Burning Issues', color: 'bg-gradient-to-br from-amber-900 via-amber-800 to-gray-900' },
       { id: 'todo', title: 'To Do', color: 'bg-gradient-to-br from-emerald-900 via-emerald-800 to-gray-900' },
       { id: 'inprogress', title: 'In Progress', color: 'bg-gradient-to-br from-amber-900 via-amber-800 to-gray-900' },
       { id: 'done', title: 'Done', color: 'bg-gradient-to-br from-indigo-900 via-indigo-800 to-gray-900' }
@@ -472,6 +473,7 @@ export default function KanbanBoard() {
       }
       const createdTask = await api.createTask({
         ...newTask,
+        dueDate: newTask.dueDate ? newTask.dueDate : '',
         createdAt: new Date().toISOString(),
       });
       setData(prevData => ({
@@ -492,12 +494,18 @@ export default function KanbanBoard() {
 
   const handleUpdateTask = async (updatedTask) => {
     try {
+      // Format the date before updating
+      const formattedTask = {
+        ...updatedTask,
+        dueDate: updatedTask.dueDate ? updatedTask.dueDate : ''
+      };
+
       // First update the UI and localStorage
       setData(prevData => {
         const newData = {
           ...prevData,
           tasks: prevData.tasks.map(task => 
-            task.id === updatedTask.id ? updatedTask : task
+            task.id === formattedTask.id ? formattedTask : task
           )
         };
         return newData;
@@ -505,15 +513,15 @@ export default function KanbanBoard() {
       
       // Add to pending changes if offline
       if (isOffline) {
-        setPendingChanges(prev => [...prev, { type: 'update', data: updatedTask }]);
+        setPendingChanges(prev => [...prev, { type: 'update', data: formattedTask }]);
         setError('Task updated in offline mode. Will sync when connection is restored.');
       } else {
         // Try to update the backend
         try {
-          await api.updateTask(updatedTask.id, updatedTask);
+          await api.updateTask(formattedTask.id, formattedTask);
         } catch (apiError) {
           console.error('Error updating task in backend:', apiError);
-          setPendingChanges(prev => [...prev, { type: 'update', data: updatedTask }]);
+          setPendingChanges(prev => [...prev, { type: 'update', data: formattedTask }]);
           setError('Failed to update task in server. Changes are saved locally.');
         }
       }
@@ -863,7 +871,7 @@ export default function KanbanBoard() {
           {task.dueDate && (
             <div className={`flex items-center mt-1 ${dueDateColors[dueDateStatus]}`}>
               <Calendar size={12} className="mr-1" />
-              <span>Due: {task.dueDate}</span>
+              <span>Due: {task.dueDate.split('T')[0]}</span>
               {dueDateStatus === 'overdue' && <span className="ml-1">(Overdue)</span>}
               {dueDateStatus === 'soon' && <span className="ml-1">(Due Soon)</span>}
             </div>
@@ -1696,35 +1704,77 @@ export default function KanbanBoard() {
                     <div className={`${column.color} px-4 py-2 rounded-t-lg flex justify-between items-center`}>
                       <h2 className="font-semibold text-white">{column.title}</h2>
                       <span className="bg-white bg-opacity-30 text-white text-xs font-medium px-2 py-1 rounded-full">
-                        {filteredTasks.filter(task => task.status === column.id).length}
+                        {column.id === 'burningissues' 
+                          ? data.burningIssues.length 
+                          : filteredTasks.filter(task => task.status === column.id).length}
                       </span>
                     </div>
                     <div className={`flex-1 ${darkMode ? 'bg-gray-800' : 'bg-gray-100'} p-3 rounded-b-lg overflow-y-auto`} style={{minHeight: "300px"}}>
-                      {filteredTasks
-                        .filter(task => task.status === column.id)
-                        .map(task => renderTaskCard(task))}
-                        
-                      {filteredTasks.filter(task => task.status === column.id).length === 0 && (
+                      {column.id === 'burningissues' ? (
+                        <div className="space-y-3">
+                          {data.burningIssues.map((issue, index) => (
+                            <div key={index} className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} flex justify-between items-center`}>
+                              <div className="flex-1">
+                                <div className="font-medium">{issue.description}</div>
+                              </div>
+                              <button 
+                                className="text-gray-400 hover:text-amber-400 transition-colors"
+                                onClick={() => handleDeleteBurningIssue(issue.id)}
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ))}
+                          {data.burningIssues.length === 0 && (
+                            <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} text-gray-500`}>No burning issues.</div>
+                          )}
+                        </div>
+                      ) : (
+                        filteredTasks
+                          .filter(task => task.status === column.id)
+                          .map(task => renderTaskCard(task))
+                      )}
+                      
+                      {column.id !== 'burningissues' && filteredTasks.filter(task => task.status === column.id).length === 0 && (
                         <div className="text-center py-10 text-gray-400 dark:text-gray-600 text-sm">
                           No tasks in this column
                         </div>
                       )}
                     </div>
                     <div className="p-3 border-t border-gray-700">
-                      <button 
-                        className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center text-sm transition-colors"
-                        onClick={() => {
-                          resetNewTask();
-                          setNewTask({
-                            ...newTask,
-                            status: column.id,
-                            category: column.id === 'inprogress' ? 'projects' : 'executives'
-                          });
-                          setShowAddTask(true);
-                        }}
-                      >
-                        <Plus size={16} className="mr-1" /> Add Task
-                      </button>
+                      {column.id === 'burningissues' ? (
+                        <div className="flex">
+                          <input 
+                            type="text"
+                            className={`flex-1 px-3 py-2 rounded-l-lg border-t border-l border-b ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                            value={newBurningIssue}
+                            onChange={(e) => setNewBurningIssue(e.target.value)}
+                            placeholder="Add a new burning issue..."
+                          />
+                          <button 
+                            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-r-lg transition-colors"
+                            onClick={handleAddBurningIssue}
+                            disabled={!newBurningIssue.trim()}
+                          >
+                            Add
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center text-sm transition-colors"
+                          onClick={() => {
+                            resetNewTask();
+                            setNewTask({
+                              ...newTask,
+                              status: column.id,
+                              category: column.id === 'inprogress' ? 'projects' : 'executives'
+                            });
+                            setShowAddTask(true);
+                          }}
+                        >
+                          <Plus size={16} className="mr-1" /> Add Task
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1769,7 +1819,7 @@ export default function KanbanBoard() {
                                 )}
                                 {task.dueDate && (
                                   <div className="text-xs text-gray-500 mt-1">
-                                    Due: {task.dueDate}
+                                    Due: {task.dueDate.split('T')[0]}
                                     <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
                                       task.priority === 'high' ? 'bg-rose-900 text-rose-300' :
                                       task.priority === 'medium' ? 'bg-amber-900 text-amber-300' :
@@ -1825,59 +1875,6 @@ export default function KanbanBoard() {
                       >
                         <Plus size={16} className="mr-1" /> Add Project
                       </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Burning Issues Section */}
-                <div className="flex-shrink-0 w-80">
-                  <div className={`rounded-lg ${darkMode ? 'bg-gradient-to-br from-amber-900 via-amber-800 to-gray-900' : 'bg-amber-50'} border border-amber-600 shadow-lg h-full flex flex-col`}>
-                    <div className="px-4 py-2 rounded-t-lg flex justify-between items-center">
-                      <h2 className="font-semibold text-white flex items-center">
-                        <Flame size={20} className="mr-2 text-amber-200" />
-                        Burning Issues
-                      </h2>
-                      <span className="bg-white bg-opacity-30 text-white text-xs font-medium px-2 py-1 rounded-full">
-                        {data.burningIssues.length}
-                      </span>
-                    </div>
-                    <div className={`flex-1 ${darkMode ? 'bg-gray-800' : 'bg-gray-100'} p-3 rounded-b-lg overflow-y-auto`}>
-                      <div className="space-y-3">
-                        {data.burningIssues.map((issue, index) => (
-                          <div key={index} className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} flex justify-between items-center`}>
-                            <div className="flex-1">
-                              <div className="font-medium">{issue.description}</div>
-                            </div>
-                            <button 
-                              className="text-gray-400 hover:text-amber-400 transition-colors"
-                              onClick={() => handleDeleteBurningIssue(issue.id)}
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-                        ))}
-                        {data.burningIssues.length === 0 && (
-                          <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} text-gray-500`}>No burning issues.</div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="p-3 border-t border-amber-600">
-                      <div className="flex">
-                        <input 
-                          type="text"
-                          className={`flex-1 px-3 py-2 rounded-l-lg border-t border-l border-b ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
-                          value={newBurningIssue}
-                          onChange={(e) => setNewBurningIssue(e.target.value)}
-                          placeholder="Add a new burning issue..."
-                        />
-                        <button 
-                          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-r-lg transition-colors"
-                          onClick={handleAddBurningIssue}
-                          disabled={!newBurningIssue.trim()}
-                        >
-                          Add
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -2032,7 +2029,7 @@ export default function KanbanBoard() {
                         <div className="text-xs text-gray-500 mt-2">Assigned to: {task.assignee || 'Unassigned'}</div>
                         {task.dueDate && (
                           <div className="text-xs text-gray-500 mt-1">
-                            Due: {task.dueDate}
+                            Due: {task.dueDate.split('T')[0]}
                             <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
                               task.priority === 'high' ? 'bg-rose-900 text-rose-300' :
                               task.priority === 'medium' ? 'bg-amber-900 text-amber-300' :
@@ -2175,7 +2172,7 @@ export default function KanbanBoard() {
                                 <span>Assigned to: {task.assignee}</span>
                               </div>
                               <div className="mt-1">
-                                Due: {task.dueDate}
+                                Due: {task.dueDate.split('T')[0]}
                                 <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
                                   task.priority === 'high' ? 'bg-rose-900 text-rose-300' :
                                   task.priority === 'medium' ? 'bg-amber-900 text-amber-300' :
@@ -2268,7 +2265,7 @@ export default function KanbanBoard() {
                                 <span>Assigned to: {task.assignee}</span>
                               </div>
                               <div className="mt-1">
-                                Due: {task.dueDate}
+                                Due: {task.dueDate.split('T')[0]}
                                 <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
                                   task.priority === 'high' ? 'bg-rose-900 text-rose-300' :
                                   task.priority === 'medium' ? 'bg-amber-900 text-amber-300' :
