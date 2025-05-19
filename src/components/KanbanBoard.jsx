@@ -9,11 +9,136 @@ import jsPDF from 'jspdf';
 import * as api from '../services/api';
 import { io } from 'socket.io-client';
 
+// Add this CSS class at the top of your component, after the imports
+const flameStyles = `
+  @keyframes gradient-x {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .animate-gradient-x {
+    background-size: 200% 200%;
+    animation: gradient-x 15s ease infinite;
+  }
+
+  .flame-border {
+    position: relative;
+  }
+
+  .flame-border::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #ff4500, #ff8c00, #ff4500);
+    border-radius: 0.5rem;
+    z-index: -1;
+    animation: flame-border 2s ease-in-out infinite;
+  }
+
+  .project-border {
+    position: relative;
+  }
+
+  .project-border::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #4f46e5, #6366f1, #4f46e5);
+    border-radius: 0.5rem;
+    z-index: -1;
+    animation: project-border 2s ease-in-out infinite;
+  }
+
+  @keyframes flame-border {
+    0% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes project-border {
+    0% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.5;
+    }
+  }
+
+  .flame-bg {
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(255, 69, 0, 0.1), rgba(139, 69, 19, 0.1));
+    background-size: 200% 200%;
+    animation: gradient-x 15s ease infinite;
+  }
+
+  .flame-card {
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.05), rgba(255, 69, 0, 0.05), rgba(139, 69, 19, 0.05));
+    border: 1px solid rgba(255, 69, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .flame-card:hover {
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(255, 69, 0, 0.1), rgba(139, 69, 19, 0.1));
+    border-color: rgba(255, 69, 0, 0.2);
+    transform: translateY(-2px);
+  }
+
+  .project-bg {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(99, 102, 241, 0.1), rgba(79, 70, 229, 0.1));
+    background-size: 200% 200%;
+    animation: gradient-x 15s ease infinite;
+  }
+
+  .project-card {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(99, 102, 241, 0.05), rgba(79, 70, 229, 0.05));
+    border: 1px solid rgba(99, 102, 241, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .project-card:hover {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(99, 102, 241, 0.1), rgba(79, 70, 229, 0.1));
+    border-color: rgba(99, 102, 241, 0.2);
+    transform: translateY(-2px);
+  }
+`;
+
+// Add the styles to the document
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = flameStyles;
+  document.head.appendChild(styleSheet);
+}
+
 export default function KanbanBoard() {
   // Initial data based on your weekly updates
   const initialData = {
     columns: [
-      { id: 'burningissues', title: 'Burning Issues', color: 'bg-gradient-to-br from-amber-900 via-amber-800 to-gray-900' },
+      { 
+        id: 'burningissues', 
+        title: 'Burning Issues', 
+        color: 'bg-gradient-to-br from-amber-900 via-rose-800 to-gray-900 animate-gradient-x'
+      },
       { id: 'todo', title: 'To Do', color: 'bg-gradient-to-br from-emerald-900 via-emerald-800 to-gray-900' },
       { id: 'inprogress', title: 'In Progress', color: 'bg-gradient-to-br from-amber-900 via-amber-800 to-gray-900' },
       { id: 'done', title: 'Done', color: 'bg-gradient-to-br from-indigo-900 via-indigo-800 to-gray-900' }
@@ -1697,12 +1822,15 @@ export default function KanbanBoard() {
                 {data.columns.map(column => (
                   <div 
                     key={column.id} 
-                    className="flex-shrink-0 w-80 flex flex-col h-full"
+                    className={`flex-shrink-0 w-80 flex flex-col h-full ${column.id === 'burningissues' ? 'flame-border' : ''}`}
                     onDragOver={(e) => handleDragOver(e, column.id)}
                     onDrop={(e) => handleDrop(e, column.id)}
                   >
                     <div className={`${column.color} px-4 py-2 rounded-t-lg flex justify-between items-center`}>
-                      <h2 className="font-semibold text-white">{column.title}</h2>
+                      <h2 className="font-semibold text-white flex items-center">
+                        {column.id === 'burningissues' && <Flame size={20} className="mr-2 text-amber-300 animate-pulse" />}
+                        {column.title}
+                      </h2>
                       <span className="bg-white bg-opacity-30 text-white text-xs font-medium px-2 py-1 rounded-full">
                         {column.id === 'burningissues' 
                           ? data.burningIssues.length 
@@ -1711,9 +1839,9 @@ export default function KanbanBoard() {
                     </div>
                     <div className={`flex-1 ${darkMode ? 'bg-gray-800' : 'bg-gray-100'} p-3 rounded-b-lg overflow-y-auto`} style={{minHeight: "300px"}}>
                       {column.id === 'burningissues' ? (
-                        <div className="space-y-3">
+                        <div className="space-y-3 flame-bg">
                           {data.burningIssues.map((issue, index) => (
-                            <div key={index} className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} flex justify-between items-center`}>
+                            <div key={index} className={`p-3 rounded-lg flame-card flex justify-between items-center`}>
                               <div className="flex-1">
                                 <div className="font-medium">{issue.description}</div>
                               </div>
@@ -1726,7 +1854,7 @@ export default function KanbanBoard() {
                             </div>
                           ))}
                           {data.burningIssues.length === 0 && (
-                            <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} text-gray-500`}>No burning issues.</div>
+                            <div className={`p-3 rounded-lg flame-card text-gray-500`}>No burning issues.</div>
                           )}
                         </div>
                       ) : (
@@ -1782,27 +1910,27 @@ export default function KanbanBoard() {
                 {/* Ongoing Projects Section */}
                 <div className="flex-shrink-0 w-80">
                   <div 
-                    className={`rounded-lg ${darkMode ? 'bg-gradient-to-br from-rose-900 via-rose-800 to-gray-900' : 'bg-rose-50'} border border-rose-600 shadow-lg h-full flex flex-col`}
+                    className={`rounded-lg ${darkMode ? 'bg-gradient-to-br from-indigo-900 via-indigo-800 to-gray-900 animate-gradient-x' : 'bg-indigo-50'} border border-indigo-600 shadow-lg h-full flex flex-col project-border`}
                     onDragOver={(e) => handleDragOver(e, 'inprogress')}
                     onDrop={(e) => handleDrop(e, 'inprogress')}
                   >
                     <div className="px-4 py-2 rounded-t-lg flex justify-between items-center">
                       <h2 className="font-semibold text-white flex items-center">
-                        <ListChecks size={20} className="mr-2 text-rose-200" />
+                        <ListChecks size={20} className="mr-2 text-indigo-200 animate-pulse" />
                         Ongoing Projects
                       </h2>
                       <span className="bg-white bg-opacity-30 text-white text-xs font-medium px-2 py-1 rounded-full">
                         {data.tasks.filter(task => task.status === 'inprogress' && task.category === 'projects').length}
                       </span>
                     </div>
-                    <div className={`flex-1 ${darkMode ? 'bg-gray-800' : 'bg-gray-100'} p-3 rounded-b-lg overflow-y-auto`}>
+                    <div className={`flex-1 ${darkMode ? 'bg-gray-800' : 'bg-gray-100'} p-3 rounded-b-lg overflow-y-auto project-bg`}>
                       <div className="space-y-3">
                         {data.tasks
                           .filter(task => task.status === 'inprogress' && task.category === 'projects')
                           .map(task => (
                             <div 
                               key={task.id} 
-                              className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} flex`}
+                              className={`p-3 rounded-lg project-card flex`}
                               draggable
                               onDragStart={(e) => {
                                 e.dataTransfer.setData('text/plain', task.id);
