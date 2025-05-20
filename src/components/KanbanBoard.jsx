@@ -1586,7 +1586,7 @@ export default function KanbanBoard() {
             <div className="flex items-center">
               <div className={`${sidebarOpen ? 'w-24' : 'w-12'} transition-all duration-300`}>
                 <img 
-                  src="/orkin-logo.png" 
+                  src={import.meta.env.BASE_URL + 'orkin-logo.png'} 
                   alt="Orkin Canada Logo" 
                   className="w-full h-auto"
                   style={{ 
@@ -2302,14 +2302,20 @@ export default function KanbanBoard() {
                                 <span>Assigned to: {task.assignee}</span>
                               </div>
                               <div className="mt-1">
-                                Due: {task.dueDate.split('T')[0]}
-                                <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                                  task.priority === 'high' ? 'bg-rose-900 text-rose-300' :
-                                  task.priority === 'medium' ? 'bg-amber-900 text-amber-300' :
-                                  'bg-blue-900 text-blue-300'
-                                }`}>
-                                  {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                                </span>
+                                {task.dueDate ? (
+                                  <>
+                                    Due: {task.dueDate.split('T')[0]}
+                                    <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                                      task.priority === 'high' ? 'bg-rose-900 text-rose-300' :
+                                      task.priority === 'medium' ? 'bg-amber-900 text-amber-300' :
+                                      'bg-blue-900 text-blue-300'
+                                    }`}>
+                                      {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-gray-500">No due date set</span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2395,14 +2401,20 @@ export default function KanbanBoard() {
                                 <span>Assigned to: {task.assignee}</span>
                               </div>
                               <div className="mt-1">
-                                Due: {task.dueDate.split('T')[0]}
-                                <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                                  task.priority === 'high' ? 'bg-rose-900 text-rose-300' :
-                                  task.priority === 'medium' ? 'bg-amber-900 text-amber-300' :
-                                  'bg-blue-900 text-blue-300'
-                                }`}>
-                                  {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                                </span>
+                                {task.dueDate ? (
+                                  <>
+                                    Due: {task.dueDate.split('T')[0]}
+                                    <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                                      task.priority === 'high' ? 'bg-rose-900 text-rose-300' :
+                                      task.priority === 'medium' ? 'bg-amber-900 text-amber-300' :
+                                      'bg-blue-900 text-blue-300'
+                                    }`}>
+                                      {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-gray-500">No due date set</span>
+                                )}
                               </div>
                             </div>
                           </div>
