@@ -111,15 +111,17 @@ const flameStyles = `
   }
 
   .project-card {
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(99, 102, 241, 0.05), rgba(79, 70, 229, 0.05));
-    border: 1px solid rgba(99, 102, 241, 0.1);
+    background: linear-gradient(135deg, #1e3a8a 60%, #1e40af 100%);
+    border: 2px solid #3b82f6;
+    box-shadow: 0 2px 8px 0 rgba(30, 58, 138, 0.3);
     transition: all 0.3s ease;
   }
 
   .project-card:hover {
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(99, 102, 241, 0.1), rgba(79, 70, 229, 0.1));
-    border-color: rgba(99, 102, 241, 0.2);
-    transform: translateY(-2px);
+    background: linear-gradient(135deg, #1e40af 80%, #2563eb 100%);
+    border-color: #60a5fa;
+    box-shadow: 0 4px 16px 0 rgba(30, 58, 138, 0.4);
+    transform: translateY(-2px) scale(1.02);
   }
 `;
 
@@ -930,7 +932,7 @@ export default function KanbanBoard() {
     return (
       <div 
         key={task.id} 
-        className="bg-gray-800 p-4 rounded-lg shadow-md border border-gray-700 mb-3 cursor-move transition-all hover:shadow-lg"
+        className={`${darkMode ? 'bg-gray-800' : 'bg-white'} p-4 rounded-lg shadow-md border border-gray-700 mb-3 cursor-move transition-all hover:shadow-lg`}
         draggable
         onDragStart={(e) => {
           e.dataTransfer.setData('text/plain', task.id);
@@ -1575,9 +1577,9 @@ export default function KanbanBoard() {
   );
 
   return (
-    <div className={`flex h-screen ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`flex h-screen ${darkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-16'} ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r transition-all duration-300 flex flex-col fixed h-full z-50`}>
+      <div className={`${sidebarOpen ? 'w-64' : 'w-16'} ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border-r transition-all duration-300 flex flex-col fixed h-full z-50`}>
         <div className="p-4 flex items-center">
           {/* Logo and Title Container */}
           <div className="flex items-center justify-between w-full">
@@ -1749,7 +1751,7 @@ export default function KanbanBoard() {
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
         {/* Header */}
-        <header className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b p-4 relative z-10`}>
+        <header className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border-b p-4 relative z-10`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex-1 flex justify-center">
               <h1 className="text-xl font-bold">IT Weekly Overview</h1>
@@ -1831,13 +1833,13 @@ export default function KanbanBoard() {
                         {column.id === 'burningissues' && <Flame size={20} className="mr-2 text-amber-300 animate-pulse" />}
                         {column.title}
                       </h2>
-                      <span className="bg-white bg-opacity-30 text-white text-xs font-medium px-2 py-1 rounded-full">
+                      <span className="bg-black bg-opacity-30 text-white text-xs font-medium px-2 py-1 rounded-full">
                         {column.id === 'burningissues' 
                           ? data.burningIssues.length 
                           : filteredTasks.filter(task => task.status === column.id).length}
                       </span>
                     </div>
-                    <div className={`flex-1 ${darkMode ? 'bg-gray-800' : 'bg-gray-100'} p-3 rounded-b-lg overflow-y-auto`} style={{minHeight: "300px"}}>
+                    <div className={`flex-1 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'} p-3 rounded-b-lg overflow-y-auto`} style={{minHeight: "300px"}}>
                       {column.id === 'burningissues' ? (
                         <div className="space-y-3 flame-bg">
                           {data.burningIssues.map((issue, index) => (
@@ -2444,8 +2446,8 @@ export default function KanbanBoard() {
         
         {/* Add Task Modal */}
         {showAddTask && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div className={`rounded-lg shadow-xl w-full max-w-md mx-4 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+            <div className={`rounded-lg shadow-xl w-full max-w-md mx-4 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold">Add New Task</h2>
@@ -2646,8 +2648,8 @@ export default function KanbanBoard() {
         
         {/* Edit Task Modal */}
         {editingTask && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div className={`rounded-lg shadow-xl w-full max-w-md mx-4 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+            <div className={`rounded-lg shadow-xl w-full max-w-md mx-4 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold">Edit Task</h2>
@@ -2781,8 +2783,8 @@ export default function KanbanBoard() {
         
         {/* Add Team Member Modal */}
         {showAddTeamMember && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div className={`rounded-lg shadow-xl w-full max-w-md mx-4 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+            <div className={`rounded-lg shadow-xl w-full max-w-md mx-4 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold">Add New Team Member</h2>
