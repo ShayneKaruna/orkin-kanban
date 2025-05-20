@@ -6,6 +6,11 @@ const API_URL = 'https://orkin-kanban-backend.onrender.com/api';
 const api = axios.create({
   baseURL: API_URL,
   timeout: 5000, // 5 second timeout
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  withCredentials: true
 });
 
 // Add request interceptor for error handling
@@ -22,8 +27,18 @@ api.interceptors.request.use(
 
 // Add response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('API Response:', response.config.url, response.status);
+    return response;
+  },
   (error) => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data
+    });
     if (error.code === 'ECONNABORTED') {
       console.warn('Request timeout - server might be offline');
     }
@@ -34,20 +49,24 @@ api.interceptors.response.use(
 // Tasks API with optimistic updates
 export const getTasks = async () => {
   try {
+    console.log('Fetching tasks...');
     const response = await api.get('/tasks');
+    console.log('Tasks fetched:', response.data);
     return response.data;
   } catch (error) {
-    console.warn('Failed to fetch tasks:', error);
+    console.error('Failed to fetch tasks:', error);
     return []; // Return empty array instead of throwing
   }
 };
 
 export const createTask = async (task) => {
   try {
+    console.log('Creating task:', task);
     const response = await api.post('/tasks', task);
+    console.log('Task created:', response.data);
     return response.data;
   } catch (error) {
-    console.warn('Failed to create task:', error);
+    console.error('Failed to create task:', error);
     // Return the task with a temporary ID for optimistic updates
     return { ...task, id: `temp-${Date.now()}` };
   }
