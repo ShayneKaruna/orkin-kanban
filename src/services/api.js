@@ -5,12 +5,12 @@ const API_URL = 'https://orkin-kanban-backend.onrender.com/api';
 // Create axios instance with timeout
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 5000, // 5 second timeout
+  timeout: 10000, // Increased timeout to 10 seconds
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  withCredentials: true
+  withCredentials: false // Changed to false as we're not using cookies
 });
 
 // Add request interceptor for error handling
@@ -21,6 +21,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -32,15 +33,25 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    });
-    if (error.code === 'ECONNABORTED') {
-      console.warn('Request timeout - server might be offline');
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error('API Error Response:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response.status,
+        data: error.response.data
+      });
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('API Error Request:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        message: 'No response received from server'
+      });
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('API Error:', error.message);
     }
     return Promise.reject(error);
   }
