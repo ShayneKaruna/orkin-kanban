@@ -1210,7 +1210,7 @@ export default function KanbanBoard() {
           checkAndAddPage(lineSpacing);
           doc.setFontSize(8);
           doc.setTextColor(100);
-          doc.text(`  Due Date: ${task.dueDate}`, margin + 3, yPos);
+          doc.text(`  Due Date: ${task.dueDate.split('T')[0]}`, margin + 3, yPos);
           yPos += lineSpacing * 0.7;
         }
 
