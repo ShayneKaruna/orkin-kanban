@@ -17,6 +17,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/orkin-kanban', {
   useNewUrlParser: true,
@@ -37,7 +42,7 @@ app.use('/api/support-items', require('./routes/supportItems'));
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: ['https://orkin-kanban.vercel.app', 'http://localhost:5173'],
     methods: ['GET', 'POST', 'PATCH', 'DELETE']
   },
   pingTimeout: 60000,
@@ -92,6 +97,6 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
 }); 
