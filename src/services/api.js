@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://orkin-kanban-backend.onrender.com/api';
 
 // Create axios instance with timeout
 const api = axios.create({
