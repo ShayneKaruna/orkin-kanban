@@ -17,9 +17,18 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Root route handler
+app.get('/', (req, res) => {
+  res.json({ message: 'Orkin Kanban API is running' });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
 });
 
 // MongoDB Connection
@@ -38,6 +47,24 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/team-members', require('./routes/teamMembers'));
 app.use('/api/burning-issues', require('./routes/burningIssues'));
 app.use('/api/support-items', require('./routes/supportItems'));
+
+// 404 handler for undefined routes
+app.use((req, res) => {
+  res.status(404).json({ 
+    message: 'Route not found',
+    path: req.path,
+    method: req.method
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ 
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -83,15 +110,6 @@ io.on('connection', (socket) => {
 
   socket.on('reconnect_failed', () => {
     console.error('Failed to reconnect');
-  });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
