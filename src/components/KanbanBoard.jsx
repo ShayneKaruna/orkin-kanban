@@ -1818,13 +1818,13 @@ export default function KanbanBoard() {
         {/* Board View */}
         {activeTab === 'board' && (
           <div className="flex-1 overflow-x-auto p-4">
-            <div className="flex h-full">
+            <div className="flex h-full min-w-max">
               {/* Main Kanban Columns */}
-              <div className="flex gap-4 overflow-x-auto">
+              <div className="flex gap-4 overflow-x-auto w-full">
                 {data.columns.map(column => (
                   <div 
                     key={column.id} 
-                    className={`flex-shrink-0 w-80 flex flex-col h-full ${column.id === 'burningissues' ? 'flame-border' : ''}`}
+                    className={`flex-shrink-0 w-96 flex flex-col h-full ${column.id === 'burningissues' ? 'flame-border' : ''}`}
                     onDragOver={(e) => handleDragOver(e, column.id)}
                     onDrop={(e) => handleDrop(e, column.id)}
                   >
@@ -1910,7 +1910,7 @@ export default function KanbanBoard() {
                 ))}
 
                 {/* Ongoing Projects Section */}
-                <div className="flex-shrink-0 w-80">
+                <div className="flex-shrink-0 w-96">
                   <div 
                     className={`rounded-lg ${darkMode ? 'bg-gradient-to-br from-indigo-900 via-indigo-800 to-gray-900 animate-gradient-x' : 'bg-indigo-50'} border border-indigo-600 shadow-lg h-full flex flex-col project-border`}
                     onDragOver={(e) => handleDragOver(e, 'inprogress')}
