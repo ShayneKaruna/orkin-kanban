@@ -159,7 +159,7 @@ export const deleteBurningIssue = async (id) => {
 // Support Items API with optimistic updates
 export const getSupportItems = async () => {
   try {
-    const response = await api.get('/support-items');
+    const response = await api.get('/api/support-items');
     return response.data;
   } catch (error) {
     console.warn('Failed to fetch support items:', error);
@@ -169,7 +169,7 @@ export const getSupportItems = async () => {
 
 export const createSupportItem = async (item) => {
   try {
-    const response = await api.post('/support-items', item);
+    const response = await api.post('/api/support-items', item);
     return response.data;
   } catch (error) {
     console.warn('Failed to create support item:', error);
@@ -179,12 +179,12 @@ export const createSupportItem = async (item) => {
 };
 
 export const updateSupportItem = async (id, item) => {
-  const response = await api.patch(`/support-items/${id}`, item);
+  const response = await api.patch(`/api/support-items/${id}`, item);
   return response.data;
 };
 
 export const deleteSupportItem = async (id) => {
-  const response = await api.delete(`/support-items/${id}`);
+  const response = await api.delete(`/api/support-items/${id}`);
   return response.data;
 };
 

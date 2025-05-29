@@ -1014,16 +1014,16 @@ export default function KanbanBoard() {
       if (!newSupportItem.trim()) return;
       
       const newItemData = {
-        id: Date.now().toString(), // Temporary ID for local state
         description: newSupportItem.trim(),
-        status: 'active',
+        status: 'pending',
+        priority: 'medium',
         createdAt: new Date().toISOString()
       };
       
       // Update local state immediately for optimistic update
       setData(prevData => ({
         ...prevData,
-        supportItems: [...prevData.supportItems, newItemData]
+        supportItems: [...prevData.supportItems, { ...newItemData, id: `temp-${Date.now()}` }]
       }));
       
       // Clear the input immediately
@@ -1037,7 +1037,7 @@ export default function KanbanBoard() {
           setData(prevData => ({
             ...prevData,
             supportItems: prevData.supportItems.map(item => 
-              item.id === newItemData.id ? createdItem : item
+              item.id === `temp-${Date.now()}` ? { ...createdItem, id: createdItem._id } : item
             )
           }));
         } catch (err) {
