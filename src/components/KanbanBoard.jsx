@@ -1120,10 +1120,9 @@ export default function KanbanBoard() {
     // Add Orkin Logo
     const logoWidth = 40;
     const logoHeight = 20;
-    const logoX = (pageWidth - logoWidth) / 2; // Center the logo horizontally
+    const logoX = (pageWidth - logoWidth) / 2;
     const logoY = margin;
     
-    // Load and add logo image
     const addLogoToReport = () => {
       return new Promise((resolve) => {
         const img = new Image();
@@ -1144,14 +1143,69 @@ export default function KanbanBoard() {
       });
     };
 
+    // Helper function to add section headers
+    const addSectionHeader = (title, color = [0, 0, 0]) => {
+      checkAndAddPage(lineSpacing * 2);
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(...color);
+      doc.text(title, margin, yPos);
+      doc.setFont(undefined, 'normal');
+      yPos += lineSpacing * 1.5;
+      
+      // Add a line under the header
+      doc.setDrawColor(...color);
+      doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
+      yPos += lineSpacing;
+    };
+
+    // Helper function to add task details in a grid format
+    const addTaskDetails = (task, indent = 0) => {
+      const indentStr = '  '.repeat(indent);
+      checkAndAddPage(lineSpacing * 4);
+      
+      // Title
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      const titleLines = doc.splitTextToSize(`${indentStr}• ${task.title}`, maxLineWidth - (indent * 10));
+      doc.text(titleLines, margin + 3, yPos);
+      yPos += titleLines.length * (lineSpacing * 0.8);
+
+      // Description
+      if (task.description) {
+        checkAndAddPage(lineSpacing);
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        const descLines = doc.splitTextToSize(`${indentStr}  Description: ${task.description}`, maxLineWidth - (indent * 10));
+        doc.text(descLines, margin + 3, yPos);
+        yPos += descLines.length * (lineSpacing * 0.8);
+      }
+
+      // Task metadata in a grid format
+      const metadata = [];
+      if (task.assignee) metadata.push(`Assigned to: ${task.assignee}`);
+      if (task.for) metadata.push(`For: ${task.for}`);
+      if (task.dueDate) metadata.push(`Due: ${task.dueDate.split('T')[0]}`);
+      if (task.priority) metadata.push(`Priority: ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}`);
+
+      if (metadata.length > 0) {
+        checkAndAddPage(lineSpacing);
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        const metadataText = metadata.join(' | ');
+        doc.text(`${indentStr}  ${metadataText}`, margin + 3, yPos);
+        yPos += lineSpacing * 0.8;
+      }
+
+      yPos += lineSpacing * 0.5;
+    };
+
     // Generate the report
     const generateReport = async () => {
       await addLogoToReport();
 
-      // Adjust starting position for title to account for logo
-      yPos = logoY + logoHeight + 10;
-
       // Title and Date
+      yPos = logoY + logoHeight + 10;
       doc.setFontSize(20);
       doc.setFont(undefined, 'bold');
       doc.text('Orkin Canada IT Weekly Rundown', pageWidth / 2, yPos, { align: 'center' });
@@ -1161,148 +1215,52 @@ export default function KanbanBoard() {
       doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, pageWidth / 2, yPos, { align: 'center' });
       yPos += sectionSpacing * 1.5;
 
-      // Function to add section title
-      const addSectionTitle = (title) => {
-        checkAndAddPage(lineSpacing * 1.5);
-        doc.setFontSize(14); // Reduced from 16
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(0, 0, 0);
-        doc.text(title, margin, yPos);
-        doc.setFont(undefined, 'normal');
-        yPos += lineSpacing * 1.5;
-      };
-
-      // Function to add task item with details
-      const addTaskItem = (task) => {
-        checkAndAddPage(lineSpacing * 3);
-        doc.setFontSize(9); // Reduced from 11
-        doc.setTextColor(0, 0, 0);
-        const titleLines = doc.splitTextToSize(`• ${task.title}`, maxLineWidth - 10);
-        doc.text(titleLines, margin + 3, yPos);
-        yPos += titleLines.length * (lineSpacing * 0.7);
-
-        if (task.description) {
-          checkAndAddPage(lineSpacing);
-          doc.setFontSize(8);
-          doc.setTextColor(100);
-          const descLines = doc.splitTextToSize(`  Description: ${task.description}`, maxLineWidth - 10);
-          doc.text(descLines, margin + 3, yPos);
-          yPos += descLines.length * (lineSpacing * 0.7);
-        }
-
-        if (task.assignee) {
-          checkAndAddPage(lineSpacing);
-          doc.setFontSize(8); // Reduced from 10
-          doc.setTextColor(100);
-          doc.text(`  Assigned to: ${task.assignee}`, margin + 3, yPos);
-          yPos += lineSpacing * 0.7;
-        }
-
-        if (task.for) {
-          checkAndAddPage(lineSpacing);
-          doc.setFontSize(8);
-          doc.setTextColor(100);
-          doc.text(`  For: ${task.for}`, margin + 3, yPos);
-          yPos += lineSpacing * 0.7;
-        }
-
-        if (task.dueDate) {
-          checkAndAddPage(lineSpacing);
-          doc.setFontSize(8);
-          doc.setTextColor(100);
-          doc.text(`  Due Date: ${task.dueDate.split('T')[0]}`, margin + 3, yPos);
-          yPos += lineSpacing * 0.7;
-        }
-
-        if (task.priority) {
-          checkAndAddPage(lineSpacing);
-          doc.setFontSize(8);
-          doc.setTextColor(100);
-          doc.text(`  Priority: ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}`, margin + 3, yPos);
-          yPos += lineSpacing * 0.7;
-        }
-
-        yPos += lineSpacing * 0.5;
-      };
-
-      // Burning Issues
-      addSectionTitle('Burning Issues');
+      // Burning Issues Section
+      addSectionHeader('Burning Issues', [220, 53, 69]);
       if (data.burningIssues.length === 0) {
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         doc.setTextColor(100);
         doc.text('  No burning issues', margin + 3, yPos);
         yPos += lineSpacing;
       } else {
         data.burningIssues.forEach(issue => {
-          checkAndAddPage(lineSpacing);
-          doc.setFontSize(9);
-          doc.setTextColor(0, 0, 0);
-          doc.text(`  • ${issue.description}`, margin + 3, yPos);
-          yPos += lineSpacing;
+          addTaskDetails({ title: issue.description }, 1);
         });
       }
       yPos += sectionSpacing;
 
-      // Burning Issues for Branch Managers
-      addSectionTitle('Burning Issues for Branch Managers');
-      if (data.branchManagerIssues.length === 0) {
-        doc.setFontSize(8);
-        doc.setTextColor(100);
-        doc.text('  No burning issues for branch managers', margin + 3, yPos);
-        yPos += lineSpacing;
-      } else {
-        data.branchManagerIssues.forEach(issue => {
-          checkAndAddPage(lineSpacing);
-          doc.setFontSize(9);
-          doc.setTextColor(0, 0, 0);
-          doc.text(`  • ${issue.description}`, margin + 3, yPos);
-          yPos += lineSpacing;
-        });
-      }
-      yPos += sectionSpacing;
+      // Team Members Section
+      addSectionHeader('Team Members Overview', [13, 110, 253]);
+      data.teamMembers.forEach(member => {
+        checkAndAddPage(lineSpacing * 2);
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text(member.name, margin, yPos);
+        doc.setFont(undefined, 'normal');
+        yPos += lineSpacing * 1.2;
 
-      // Ongoing Support Items
-      addSectionTitle('Ongoing Support Items');
-      if (data.supportItems.length === 0) {
-        doc.setFontSize(8);
-        doc.setTextColor(100);
-        doc.text('  No ongoing support items', margin + 3, yPos);
-        yPos += lineSpacing;
-      } else {
-        data.supportItems.forEach(item => {
-          checkAndAddPage(lineSpacing);
+        const memberTasks = data.tasks.filter(task => task.assignee === member.name);
+        if (memberTasks.length === 0) {
           doc.setFontSize(9);
-          doc.setTextColor(0, 0, 0);
-          doc.text(`  • ${item.description}`, margin + 3, yPos);
+          doc.setTextColor(100);
+          doc.text('  No tasks assigned', margin + 3, yPos);
           yPos += lineSpacing;
-        });
-      }
-      yPos += sectionSpacing;
-
-      // Ongoing Projects
-      addSectionTitle('Ongoing Projects');
-      const ongoingProjects = data.tasks.filter(task => 
-        task.category === 'projects' && 
-        task.status === 'inprogress'
-      );
-      if (ongoingProjects.length === 0) {
-        doc.setFontSize(8);
-        doc.setTextColor(100);
-        doc.text('  No ongoing projects', margin + 3, yPos);
+        } else {
+          memberTasks.forEach(task => addTaskDetails(task, 1));
+        }
         yPos += lineSpacing;
-      } else {
-        ongoingProjects.forEach(addTaskItem);
-      }
+      });
       yPos += sectionSpacing;
 
       // Executives Section
-      addSectionTitle('Executives');
+      addSectionHeader('Executive Tasks', [111, 66, 193]);
       data.executives.forEach(executive => {
-        checkAndAddPage(lineSpacing * 1.5);
-        doc.setFontSize(12); // Reduced from 14
+        checkAndAddPage(lineSpacing * 2);
+        doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(0, 0, 0);
-        doc.text(`${executive.name}`, margin, yPos);
+        doc.text(executive.name, margin, yPos);
         doc.setFont(undefined, 'normal');
         yPos += lineSpacing * 1.2;
 
@@ -1312,25 +1270,25 @@ export default function KanbanBoard() {
         );
         
         if (execTasks.length === 0) {
-          doc.setFontSize(8);
+          doc.setFontSize(9);
           doc.setTextColor(100);
           doc.text('  No tasks assigned', margin + 3, yPos);
           yPos += lineSpacing;
         } else {
-          execTasks.forEach(addTaskItem);
+          execTasks.forEach(task => addTaskDetails(task, 1));
         }
-        yPos += lineSpacing * 0.5;
+        yPos += lineSpacing;
       });
       yPos += sectionSpacing;
 
       // Region Managers Section
-      addSectionTitle('Region Managers');
+      addSectionHeader('Region Manager Tasks', [40, 167, 69]);
       data.regionManagers.forEach(manager => {
-        checkAndAddPage(lineSpacing * 1.5);
+        checkAndAddPage(lineSpacing * 2);
         doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(0, 0, 0);
-        doc.text(`${manager.name}`, margin, yPos);
+        doc.text(manager.name, margin, yPos);
         doc.setFont(undefined, 'normal');
         yPos += lineSpacing * 1.2;
 
@@ -1340,95 +1298,43 @@ export default function KanbanBoard() {
         );
         
         if (managerTasks.length === 0) {
-          doc.setFontSize(8);
+          doc.setFontSize(9);
           doc.setTextColor(100);
           doc.text('  No tasks assigned', margin + 3, yPos);
           yPos += lineSpacing;
         } else {
-          managerTasks.forEach(addTaskItem);
+          managerTasks.forEach(task => addTaskDetails(task, 1));
         }
-        yPos += lineSpacing * 0.5;
+        yPos += lineSpacing;
       });
       yPos += sectionSpacing;
 
-      // Branch Managers Section
-      addSectionTitle('Branch Managers');
-      const branchManagerTasks = data.tasks.filter(task => task.category === 'branchmanagers');
-      if (branchManagerTasks.length === 0) {
-        doc.setFontSize(8);
+      // Ongoing Projects Section
+      addSectionHeader('Ongoing Projects', [0, 123, 255]);
+      const ongoingProjects = data.tasks.filter(task => 
+        task.status === 'inprogress' && 
+        task.category === 'projects'
+      );
+      if (ongoingProjects.length === 0) {
+        doc.setFontSize(9);
         doc.setTextColor(100);
-        doc.text('  No tasks assigned to branch managers', margin + 3, yPos);
-      } else {
-        branchManagerTasks.forEach(addTaskItem);
-      }
-      yPos += sectionSpacing;
-
-      // Add Summary Section
-      addSectionTitle('Complete Task Summary');
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-      doc.text('This section includes all tasks, burning issues, and support items:', margin, yPos);
-      yPos += lineSpacing * 1.5;
-
-      // All Tasks Summary
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
-      doc.text('All Tasks', margin, yPos);
-      doc.setFont(undefined, 'normal');
-      yPos += lineSpacing * 1.2;
-
-      if (data.tasks.length === 0) {
-        doc.setFontSize(8);
-        doc.setTextColor(100);
-        doc.text('  No tasks in the system', margin + 3, yPos);
+        doc.text('  No ongoing projects', margin + 3, yPos);
         yPos += lineSpacing;
       } else {
-        data.tasks.forEach(addTaskItem);
+        ongoingProjects.forEach(task => addTaskDetails(task, 1));
       }
       yPos += sectionSpacing;
 
-      // All Burning Issues Summary
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
-      doc.text('All Burning Issues', margin, yPos);
-      doc.setFont(undefined, 'normal');
-      yPos += lineSpacing * 1.2;
-
-      if (data.burningIssues.length === 0) {
-        doc.setFontSize(8);
-        doc.setTextColor(100);
-        doc.text('  No burning issues', margin + 3, yPos);
-        yPos += lineSpacing;
-      } else {
-        data.burningIssues.forEach(issue => {
-          checkAndAddPage(lineSpacing);
-          doc.setFontSize(9);
-          doc.setTextColor(0, 0, 0);
-          doc.text(`  • ${issue.description}`, margin + 3, yPos);
-          yPos += lineSpacing;
-        });
-      }
-      yPos += sectionSpacing;
-
-      // All Support Items Summary
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
-      doc.text('All Support Items', margin, yPos);
-      doc.setFont(undefined, 'normal');
-      yPos += lineSpacing * 1.2;
-
+      // Support Items Section
+      addSectionHeader('Support Items', [255, 193, 7]);
       if (data.supportItems.length === 0) {
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         doc.setTextColor(100);
         doc.text('  No support items', margin + 3, yPos);
         yPos += lineSpacing;
       } else {
         data.supportItems.forEach(item => {
-          checkAndAddPage(lineSpacing);
-          doc.setFontSize(9);
-          doc.setTextColor(0, 0, 0);
-          doc.text(`  • ${item.description}`, margin + 3, yPos);
-          yPos += lineSpacing;
+          addTaskDetails({ title: item.description }, 1);
         });
       }
 
