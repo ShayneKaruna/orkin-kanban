@@ -1171,14 +1171,24 @@ export default function KanbanBoard() {
       doc.text(titleLines, margin + 3, yPos);
       yPos += titleLines.length * (lineSpacing * 0.8);
 
-      // Description
+      // Description with bullet points
       if (task.description) {
         checkAndAddPage(lineSpacing);
         doc.setFontSize(9);
         doc.setTextColor(100);
-        const descLines = doc.splitTextToSize(`${indentStr}  Description: ${task.description}`, maxLineWidth - (indent * 10));
-        doc.text(descLines, margin + 3, yPos);
-        yPos += descLines.length * (lineSpacing * 0.8);
+        
+        // Split description into lines and handle bullet points
+        const descriptionLines = task.description.split('\n');
+        descriptionLines.forEach(line => {
+          const trimmedLine = line.trim();
+          if (trimmedLine) {
+            // If line starts with a bullet point, keep it; otherwise, add one
+            const bulletLine = trimmedLine.startsWith('•') ? trimmedLine : `• ${trimmedLine}`;
+            const descLines = doc.splitTextToSize(`${indentStr}  ${bulletLine}`, maxLineWidth - (indent * 10));
+            doc.text(descLines, margin + 3, yPos);
+            yPos += descLines.length * (lineSpacing * 0.8);
+          }
+        });
       }
 
       // Task metadata in a grid format
@@ -2394,7 +2404,32 @@ export default function KanbanBoard() {
                       className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                       value={newTask.description}
                       onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          const cursorPosition = e.target.selectionStart;
+                          const textBeforeCursor = newTask.description.substring(0, cursorPosition);
+                          const textAfterCursor = newTask.description.substring(cursorPosition);
+                          const lastNewLineIndex = textBeforeCursor.lastIndexOf('\n');
+                          const currentLine = textBeforeCursor.substring(lastNewLineIndex + 1);
+                          
+                          // Check if current line starts with a bullet point
+                          const bulletPoint = currentLine.trim().startsWith('•') ? '• ' : '';
+                          
+                          setNewTask({
+                            ...newTask,
+                            description: textBeforeCursor + '\n' + bulletPoint + textAfterCursor
+                          });
+                          
+                          // Set cursor position after the new bullet point
+                          setTimeout(() => {
+                            e.target.selectionStart = cursorPosition + bulletPoint.length + 1;
+                            e.target.selectionEnd = cursorPosition + bulletPoint.length + 1;
+                          }, 0);
+                        }
+                      }}
                       rows={3}
+                      placeholder="Enter description (Press Enter for bullet points)"
                     />
                   </div>
                   
